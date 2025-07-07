@@ -1,0 +1,203 @@
+// ==UserScript==
+// @name         Gemini Question Solver UI
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  UI for solving questions using Gemini API and providing hints
+// @author       You
+// @match        *://*/*
+// @grant        GM_addStyle
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // --- UI Styles ---
+    GM_addStyle(`
+        #gemini-ui-box {
+            position: fixed;
+            top: 60px;
+            right: 30px;
+            width: 320px;
+            background: #222;
+            color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px #0008;
+            z-index: 99999;
+            padding: 18px 16px 16px 16px;
+            font-family: Arial, sans-serif;
+        }
+        #gemini-ui-box input, #gemini-ui-box textarea {
+            width: 100%;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border: 1px solid #444;
+            padding: 6px;
+            font-size: 14px;
+            background: #333;
+            color: #fff;
+        }
+        #gemini-ui-box button {
+            background: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+        #gemini-ui-box button:disabled {
+            background: #888;
+            cursor: not-allowed;
+        }
+        #gemini-ui-box .gemini-status {
+            margin-top: 8px;
+            font-size: 13px;
+            min-height: 24px;
+        }
+    `);
+
+    // --- UI HTML ---
+    const ui = document.createElement('div');
+    ui.id = 'gemini-ui-box';
+    ui.innerHTML = `
+        <div style="font-size:18px;font-weight:bold;margin-bottom:8px;">Gemini Question Solver</div>
+        <label>Gemini API Key:</label>
+        <input type="password" id="gemini-api-key" placeholder="Paste your Gemini API key here" autocomplete="off"/>
+        <label>Question:</label>
+        <textarea id="gemini-question" rows="3" placeholder="Highlight a question or type here"></textarea>
+        <button id="gemini-solve-btn">Start Solving</button>
+        <div class="gemini-status" id="gemini-status"></div>
+    `;
+    document.body.appendChild(ui);
+
+    // --- State ---
+    let apiKey = localStorage.getItem('gemini_api_key') || '';
+
+    // --- Elements ---
+    const apiKeyInput = document.getElementById('gemini-api-key');
+    const questionInput = document.getElementById('gemini-question');
+    const solveBtn = document.getElementById('gemini-solve-btn');
+    const statusDiv = document.getElementById('gemini-status');
+
+    apiKeyInput.value = apiKey;
+
+    // --- Save API Key ---
+    apiKeyInput.addEventListener('input', function() {
+        apiKey = apiKeyInput.value.trim();
+        localStorage.setItem('gemini_api_key', apiKey);
+    });
+
+    // --- Autofill textarea with selection ---
+    document.addEventListener('selectionchange', function() {
+        const sel = window.getSelection();
+        if (sel && sel.toString().trim().length > 0) {
+            questionInput.value = sel.toString().trim();
+        }
+    });
+
+    // --- Solve Button ---
+    solveBtn.addEventListener('click', async function() {
+        const question = questionInput.value.trim();
+        if (!apiKey) {
+            statusDiv.textContent = "Please enter your Gemini API key.";
+            return;
+        }
+        if (!question) {
+            statusDiv.textContent = "Please enter or select a question.";
+            return;
+        }
+        statusDiv.textContent = "Solving...";
+        solveBtn.disabled = true;
+
+        try {
+            // Gemini API call (text model)
+            const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + encodeURIComponent(apiKey), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: question }] }]
+                })
+            });
+            const data = await response.json();
+            if (data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+                const answer = data.candidates[0].content.parts.map(p => p.text).join('\n');
+                statusDiv.textContent = answer;
+            } else if (data.error && data.error.message) {
+                statusDiv.textContent = "Error: " + data.error.message;
+            } else {
+                statusDiv.textContent = "No answer received.";
+            }
+        } catch (e) {
+            statusDiv.textContent = "Request failed: " + e;
+        }
+        solveBtn.disabled = false;
+    });
+
+    // --- Right-click hint feature ---
+    document.addEventListener('contextmenu', function(e) {
+        let selectedText = window.getSelection().toString().trim();
+        if (selectedText.length > 0) {
+            e.preventDefault();
+            showHint(selectedText, e.pageX, e.pageY);
+        }
+    });
+
+    // --- Show hint popup ---
+    function showHint(question, x, y) {
+        // Remove old hint if any
+        let old = document.getElementById('gemini-hint-popup');
+        if (old) old.remove();
+
+        let popup = document.createElement('div');
+        popup.id = 'gemini-hint-popup';
+        popup.style.position = 'absolute';
+        popup.style.left = (x+10) + 'px';
+        popup.style.top = (y+10) + 'px';
+        popup.style.background = '#222';
+        popup.style.color = '#fff';
+        popup.style.padding = '12px 16px';
+        popup.style.borderRadius = '7px';
+        popup.style.boxShadow = '0 2px 12px #0008';
+        popup.style.zIndex = 999999;
+        popup.style.maxWidth = '350px';
+        popup.style.fontSize = '15px';
+        popup.textContent = 'Loading hint...';
+
+        document.body.appendChild(popup);
+
+        // Fetch hint from Gemini
+        if (!apiKey) {
+            popup.textContent = "Please enter your Gemini API key in the UI.";
+            return;
+        }
+        fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + encodeURIComponent(apiKey), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: "Give a hint for solving this question, not the answer: " + question }] }]
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+                popup.textContent = data.candidates[0].content.parts.map(p => p.text).join('\n');
+            } else if (data.error && data.error.message) {
+                popup.textContent = "Error: " + data.error.message;
+            } else {
+                popup.textContent = "No hint received.";
+            }
+        })
+        .catch(e => {
+            popup.textContent = "Request failed: " + e;
+        });
+
+        // Remove popup on click elsewhere
+        setTimeout(() => {
+            document.addEventListener('mousedown', function handler() {
+                popup.remove();
+                document.removeEventListener('mousedown', handler);
+            });
+        }, 100);
+    }
+})();
