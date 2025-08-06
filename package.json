@@ -1,0 +1,136 @@
+{
+  "name": "claude-code-assistant",
+  "displayName": "Claude Code Assistant",
+  "description": "AI code assistance powered by Claude",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:claude-assistant.explain",
+    "onCommand:claude-assistant.optimize",
+    "onCommand:claude-assistant.comment",
+    "onCommand:claude-assistant.debug",
+    "onCommand:claude-assistant.chat"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "claude-assistant.explain",
+        "title": "Explain Code",
+        "category": "Claude"
+      },
+      {
+        "command": "claude-assistant.optimize",
+        "title": "Optimize Code",
+        "category": "Claude"
+      },
+      {
+        "command": "claude-assistant.comment",
+        "title": "Add Comments",
+        "category": "Claude"
+      },
+      {
+        "command": "claude-assistant.debug",
+        "title": "Help Debug",
+        "category": "Claude"
+      },
+      {
+        "command": "claude-assistant.chat",
+        "title": "Chat with Claude",
+        "category": "Claude"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "claude-assistant.explain",
+          "when": "editorHasSelection",
+          "group": "claude@1"
+        },
+        {
+          "command": "claude-assistant.optimize",
+          "when": "editorHasSelection",
+          "group": "claude@2"
+        },
+        {
+          "command": "claude-assistant.comment",
+          "when": "editorHasSelection",
+          "group": "claude@3"
+        },
+        {
+          "command": "claude-assistant.debug",
+          "when": "editorHasSelection",
+          "group": "claude@4"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "claude-assistant.chat"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Claude Code Assistant",
+      "properties": {
+        "claude-assistant.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your Anthropic API key for Claude",
+          "order": 1
+        },
+        "claude-assistant.model": {
+          "type": "string",
+          "default": "claude-sonnet-4-20250514",
+          "description": "Claude model to use",
+          "enum": [
+            "claude-sonnet-4-20250514",
+            "claude-opus-4-20250514"
+          ],
+          "order": 2
+        },
+        "claude-assistant.maxTokens": {
+          "type": "number",
+          "default": 4000,
+          "description": "Maximum tokens for Claude responses",
+          "order": 3
+        }
+      }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "claude-chat",
+          "name": "Claude Chat",
+          "when": "true"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claude-assistant",
+          "title": "Claude Assistant",
+          "icon": "$(robot)"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
