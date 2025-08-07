@@ -43,6 +43,11 @@
         "command": "claude-assistant.chat",
         "title": "Chat with Claude",
         "category": "Claude"
+      },
+      {
+        "command": "claude-assistant.changeApiKey",
+        "title": "Change API Key",
+        "category": "Claude"
       }
     ],
     "menus": {
@@ -71,6 +76,9 @@
       "commandPalette": [
         {
           "command": "claude-assistant.chat"
+        },
+        {
+          "command": "claude-assistant.changeApiKey"
         }
       ]
     },
@@ -85,19 +93,38 @@
         },
         "claude-assistant.model": {
           "type": "string",
-          "default": "claude-sonnet-4-20250514",
+          "default": "claude-3-5-haiku-20241022",
           "description": "Claude model to use",
           "enum": [
+            "claude-3-5-haiku-20241022",
+            "claude-3-haiku-20240307",
+            "claude-opus-4.1-20250805",
+            "claude-opus-4-20250514",
             "claude-sonnet-4-20250514",
-            "claude-opus-4-20250514"
+            "claude-3-7-sonnet-20250219",
+            "claude-3-5-sonnet-20241022", 
+            "claude-3-opus-20240229",
+            "claude-3-sonnet-20240229"
           ],
           "order": 2
         },
         "claude-assistant.maxTokens": {
           "type": "number",
-          "default": 4000,
-          "description": "Maximum tokens for Claude responses",
+          "default": 200000,
+          "description": "Maximum tokens for Claude responses (set very high for unlimited responses)",
           "order": 3
+        },
+        "claude-assistant.autoAttachFile": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically attach current file when switching tabs",
+          "order": 4
+        },
+        "claude-assistant.maxImages": {
+          "type": "number",
+          "default": 3,
+          "description": "Maximum number of images to attach",
+          "order": 5
         }
       }
     },
